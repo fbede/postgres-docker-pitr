@@ -15,7 +15,8 @@ services:
       - pitr-network
 
   pgbackrest:
-    image: pgbackrest
+    build:
+      context: ./pgbackrest
     container_name: pgbackrest
     environment:
       PGBACKREST_S3_KEY: "<your-s3-key>"
