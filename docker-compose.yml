@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    build:
+      context: ./postgres
+    container_name: pg-database
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    networks:
+      - pitr-network
+
+  pgbackrest:
+    image: pgbackrest
+    container_name: pgbackrest
+    environment:
+      PGBACKREST_S3_KEY: "<your-s3-key>"
+      PGBACKREST_S3_SECRET: "<your-s3-secret>"
+      PGBACKREST_S3_BUCKET: "<your-s3-bucket>"
+      PGBACKREST_S3_REGION: "<your-s3-region>"
+    volumes:
+      - ./pgbackrest:/etc/pgbackrest
+      - ./pgdata:/var/lib/postgresql/data
+    networks:
+      - pitr-network
+    depends_on:
+      - postgres
+    command: >
+      sh -c "pgbackrest --stanza=mydb stanza-create &&
+             tail -f /dev/null"
+
+  cron:
+    build:
+      context: ./cron
+    container_name: backup-cron
+    volumes:
+      - ./pgbackrest:/pgbackrest
+    networks:
+      - pitr-network
+
+networks:
+  pitr-network:
+    driver: bridge
